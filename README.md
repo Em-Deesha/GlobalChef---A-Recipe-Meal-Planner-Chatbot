@@ -25,6 +25,7 @@ Recipe_and_Meal_Planner/
 ├── llm_api/             # LLM development files
 │   └── gemini.ipynb     # Jupyter notebook for testing
 ├── venv/                # Python virtual environment
+├── .env                # Your GEMINI_API_KEY
 ├── deploy.sh            # Deployment script
 ├── start_server.sh      # Backend server script
 ├── run.sh              # Python execution helper
