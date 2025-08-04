@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlobalChef - Recipe & Meal Planner</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .recipe-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .recipe-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            border-left: 5px solid #667eea;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #c33;
+        }
+
+        .examples {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .example-btn {
+            background: #e9ecef;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .example-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-utensils"></i> GlobalChef</h1>
+            <p>Your AI-powered Recipe & Meal Planning Assistant</p>
+        </div>
+
+        <div class="main-content">
+            <div class="input-group">
+                <input type="text" id="recipePrompt" class="input-field" 
+                       placeholder="Ask for a recipe, meal plan, or cooking advice...">
+                <button id="generateBtn" class="generate-btn">
+                    <i class="fas fa-magic"></i> Generate Recipe
+                </button>
+            </div>
+
+            <div class="examples">
+                <h3><i class="fas fa-lightbulb"></i> Try these examples:</h3>
+                <button class="example-btn" onclick="setPrompt('Give me a simple pasta recipe')">Simple Pasta</button>
+                <button class="example-btn" onclick="setPrompt('Create a healthy breakfast smoothie')">Breakfast Smoothie</button>
+                <button class="example-btn" onclick="setPrompt('Show me a vegetarian curry recipe')">Vegetarian Curry</button>
+                <button class="example-btn" onclick="setPrompt('Give me a weekly meal plan for weight loss')">Weekly Meal Plan</button>
+            </div>
+
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Cooking up your recipe... <i class="fas fa-chef-hat"></i></p>
+            </div>
+
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+            <div id="recipeSection" class="recipe-section">
+                <div class="recipe-card">
+                    <div id="recipeContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8001';
+        
+        const generateBtn = document.getElementById('generateBtn');
+        const recipePrompt = document.getElementById('recipePrompt');
+        const loading = document.getElementById('loading');
+        const recipeSection = document.getElementById('recipeSection');
+        const recipeContent = document.getElementById('recipeContent');
+        const errorMessage = document.getElementById('errorMessage');
+
+        function setPrompt(text) {
+            recipePrompt.value = text;
+        }
+
+        function showLoading() {
+            loading.style.display = 'block';
+            recipeSection.style.display = 'none';
+            errorMessage.style.display = 'none';
+            generateBtn.disabled = true;
+        }
+
+        function hideLoading() {
+            loading.style.display = 'none';
+            generateBtn.disabled = false;
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            recipeSection.style.display = 'none';
+        }
+
+        function displayRecipe(recipeText) {
+            recipeContent.innerHTML = `<pre style="white-space: pre-wrap; font-family: inherit;">${recipeText}</pre>`;
+            recipeSection.style.display = 'block';
+        }
+
+        async function generateRecipe() {
+            const prompt = recipePrompt.value.trim();
+            
+            if (!prompt) {
+                showError('Please enter a recipe request');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/ask`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_prompt: prompt
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.response) {
+                    displayRecipe(data.response);
+                } else {
+                    showError('No recipe generated. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Failed to generate recipe. Please check your connection and try again.');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Event listeners
+        generateBtn.addEventListener('click', generateRecipe);
+        
+        recipePrompt.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateRecipe();
+            }
+        });
+    </script>
+</body>
+</html> 
